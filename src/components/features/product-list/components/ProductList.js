@@ -1,6 +1,6 @@
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Dialog, Disclosure, Menu, Transition } from "@headlessui/react";
-import { XMarkIcon } from "@heroicons/react/24/outline";
+import {XMarkIcon } from "@heroicons/react/24/outline";
 import {
   ChevronDownIcon,
   FunnelIcon,
@@ -8,88 +8,80 @@ import {
   PlusIcon,
   Squares2X2Icon,
 } from "@heroicons/react/20/solid";
-import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/20/solid";
-
-const products = [
-  {
-    id: 1,
-    name: "Basic Tee 8-Pack",
-    href: "#",
-    price: "$256",
-    description:
-      "Get the full lineup of our Basic Tees. Have a fresh shirt all week, and an extra for laundry day.",
-    options: "8 colors",
-    imageSrc:
-      "https://tailwindui.com/img/ecommerce-images/category-page-02-image-card-01.jpg",
-    imageAlt:
-      "Eight shirts arranged on table in black, olive, grey, blue, white, red, mustard, and green.",
-  },
-  {
-    id: 2,
-    name: "Basic Tee",
-    href: "#",
-    price: "$32",
-    description:
-      "Look like a visionary CEO and wear the same black t-shirt every day.",
-    options: "Black",
-    imageSrc:
-      "https://tailwindui.com/img/ecommerce-images/category-page-02-image-card-02.jpg",
-    imageAlt: "Front of plain black t-shirt.",
-  },
-  // More products...
-];
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  StarIcon,
+} from "@heroicons/react/20/solid";
+import { Link } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchAllProductsAsync, fetchBrandsAsync, fetchCategoriesAsync, selectAllProducts, selectBrand, selectCategories } from "../ProductSlice";
 
 const sortOptions = [
-  { name: "Most Popular", href: "#", current: true },
-  { name: "Best Rating", href: "#", current: false },
-  { name: "Newest", href: "#", current: false },
-  { name: "Price: Low to High", href: "#", current: false },
-  { name: "Price: High to Low", href: "#", current: false },
+  { name: "Best Rating", sort: "price", order:"desc", current: false },
+  { name: "Price: Low to High", sort: "price", order:'asc', current: false },
+  { name: "Price: High to Low", sort: "price", order: 'desc',current: false },
 ];
-const filters = [
-  {
-    id: "color",
-    name: "Color",
-    options: [
-      { value: "white", label: "White", checked: false },
-      { value: "beige", label: "Beige", checked: false },
-      { value: "blue", label: "Blue", checked: true },
-      { value: "brown", label: "Brown", checked: false },
-      { value: "green", label: "Green", checked: false },
-      { value: "purple", label: "Purple", checked: false },
-    ],
-  },
-  {
-    id: "category",
-    name: "Category",
-    options: [
-      { value: "new-arrivals", label: "New Arrivals", checked: false },
-      { value: "sale", label: "Sale", checked: false },
-      { value: "travel", label: "Travel", checked: true },
-      { value: "organization", label: "Organization", checked: false },
-      { value: "accessories", label: "Accessories", checked: false },
-    ],
-  },
-  {
-    id: "size",
-    name: "Size",
-    options: [
-      { value: "2l", label: "2L", checked: false },
-      { value: "6l", label: "6L", checked: false },
-      { value: "12l", label: "12L", checked: false },
-      { value: "18l", label: "18L", checked: false },
-      { value: "20l", label: "20L", checked: false },
-      { value: "40l", label: "40L", checked: true },
-    ],
-  },
-];
+
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
 export default function ProductList() {
+  const dispatch = useDispatch();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const products = useSelector(selectAllProducts);
+  const brands = useSelector(selectBrand);
+  const categories = useSelector(selectCategories)
+  const [filter,setFilter] = useState({})
+  const [pages,setPages] = useState()
+  
+ 
+  const handleFilter =(e,section,option)=>{
+    const newFilter = {...filter};
+    if(e.target.checked){
+      newFilter[section.id] = option.value;
+    }else{
+      delete newFilter[section.id]
+    }
+    setFilter(newFilter)
+
+    //TODO : adding dispatch fillter
+
+  }
+  const handleSort =(e,option)=>{ 
+
+    const newFilter = {...filter,_sort:option.sort, _order:option.order};
+    setFilter(newFilter)
+
+    // TODO:  adding dispatcher infiller
+  }
+  useEffect(() => {
+    dispatch(fetchAllProductsAsync());
+  },[dispatch]);
+  
+
+
+  useEffect(()=>{
+    dispatch(fetchBrandsAsync());
+    dispatch(fetchCategoriesAsync());
+  },[])
+   const filters = [
+     {
+       id: "brands",
+       name: "Brands",
+       options: brands,
+     },
+     {
+       id: "category",
+       name: "Category",
+       options: categories,
+     },
+   ];
+
+
+   console.log(filters);
   return (
     <div>
       <div>
@@ -241,8 +233,9 @@ export default function ProductList() {
                           {sortOptions.map((option) => (
                             <Menu.Item key={option.name}>
                               {({ active }) => (
-                                <a
-                                  href={option.href}
+                                <p
+                                 onClick={e => handleSort(e,option)}
+                                  
                                   className={classNames(
                                     option.current
                                       ? "font-medium text-gray-900"
@@ -252,7 +245,7 @@ export default function ProductList() {
                                   )}
                                 >
                                   {option.name}
-                                </a>
+                                </p>
                               )}
                             </Menu.Item>
                           ))}
@@ -332,6 +325,7 @@ export default function ProductList() {
                                       name={`${section.id}[]`}
                                       defaultValue={option.value}
                                       type="checkbox"
+                                      onClick={e =>handleFilter(e,section,option)}
                                       defaultChecked={option.checked}
                                       className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                                     />
@@ -356,41 +350,71 @@ export default function ProductList() {
                     <div className="bg-white">
                       <div className="mx-auto max-w-2xl px-4 py-0 sm:px-6 sm:py-0 lg:max-w-7xl lg:px-8">
                         <div className="grid grid-cols-1 gap-y-4 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-10 lg:grid-cols-3 lg:gap-x-8">
+                          
                           {products.map((product) => (
-                            <div
-                              key={product.id}
-                              className="group relative flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white"
-                            >
-                              <div className="aspect-h-4 aspect-w-3 bg-gray-200 sm:aspect-none group-hover:opacity-75 sm:h-96">
-                                <img
-                                  src={product.imageSrc}
-                                  alt={product.imageAlt}
-                                  className="h-full w-full object-cover object-center sm:h-full sm:w-full"
-                                />
-                              </div>
-                              <div className="flex flex-1 flex-col space-y-2 p-4">
-                                <h3 className="text-sm font-medium text-gray-900">
-                                  <a href={product.href}>
-                                    <span
-                                      aria-hidden="true"
-                                      className="absolute inset-0"
-                                    />
-                                    {product.name}
-                                  </a>
-                                </h3>
-                                <p className="text-sm text-gray-500">
-                                  {product.description}
-                                </p>
-                                <div className="flex flex-1 flex-col justify-end">
-                                  <p className="text-sm italic text-gray-500">
-                                    {product.options}
+                            <Link to={`/product-detail/${product.id}`}>
+                              <div
+                                key={product.id}
+                                className="group relative flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white"
+                              >
+                                <div className="aspect-h-4 aspect-w-3 bg-gray-200 sm:aspect-none group-hover:opacity-75 sm:h-96">
+                                  <img
+                                    src={product.thumbnail}
+                                    alt={product.title}
+                                    className="h-full w-full object-cover object-center sm:h-full sm:w-full"
+                                  />
+                                </div>
+                                <div className="flex flex-1 flex-col space-y-2 p-4">
+                                  <h3 className="text-sm font-medium text-gray-900">
+                                    <a href={product.thumbnail}>
+                                      <span
+                                        aria-hidden="true"
+                                        className="absolute inset-0"
+                                      />
+                                      {product.title}
+                                    </a>
+                                  </h3>
+                                  <p className="text-sm text-gray-500">
+                                    {product.description}
                                   </p>
-                                  <p className="text-base font-medium text-gray-900">
-                                    {product.price}
-                                  </p>
+                                  <div className="flex flex-1 flex-col justify-end">
+                                    <p className="text-sm text-gray-500">
+                                      {product.rating} out of 5 stars
+                                    </p>
+                                    <div className="flex items-center">
+                                      {[1,2,3,4,5].map((rating) => (
+                                        <StarIcon
+                                          key={rating}
+                                          className={classNames(
+                                            product.rating > rating
+                                              ? "text-yellow-400"
+                                              : "text-gray-200",
+                                            "h-5 w-5 flex-shrink-0"
+                                          )}
+                                          aria-hidden="true"
+                                        />
+                                      ))}
+                                    </div>
+                                    <p className="mt-1 text-sm text-gray-500">
+                                      {product.reviewCount} reviews
+                                    </p>
+                                    <div>
+                                      <p className="text-base font-medium text-gray-900">
+                                        ${" "}
+                                        {Math.round(
+                                          product.price *
+                                            (1 -
+                                              product.discountPercentage / 100)
+                                        )}
+                                      </p>
+                                      <p className="text-base font-medium text-gray-400 line-through">
+                                        $ {product.price}
+                                      </p>
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
+                            </Link>
                           ))}
                         </div>
                       </div>
@@ -417,7 +441,7 @@ export default function ProductList() {
                 <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm text-gray-700">
-                      Showing <span className="font-medium">1</span> to{" "}
+                      Showing <span className="font-medium">1</span> to
                       <span className="font-medium">10</span> of{" "}
                       <span className="font-medium">97</span> results
                     </p>
